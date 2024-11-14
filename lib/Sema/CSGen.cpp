@@ -5074,6 +5074,21 @@ ConstraintSystem::applyPropertyWrapperToParameter(
     return getTypeMatchSuccess();
   }
 
+  auto wrapperInfo = param->getAttachedPropertyWrapperTypeInfo(0);
+  if (!argLabel.hasDollarPrefix() && !wrapperInfo.wrappedValueInit && param->hasExternalPropertyWrapper()) {
+    if (!shouldAttemptFixes())
+      return getTypeMatchFailure(locator);
+
+    recordAnyTypeVarAsPotentialHole(paramType);
+
+    auto *loc = getConstraintLocator(locator);
+    auto *fix = UsePropertyWrapper::create(*this, param, /*usingProjection=*/false, paramType, wrapperType, loc);
+    if (recordFix(fix))
+      return getTypeMatchFailure(locator);
+
+    return getTypeMatchSuccess();
+  }
+
   if (argLabel.hasDollarPrefix()) {
     Type projectionType = computeProjectedValueType(param, wrapperType);
     addConstraint(matchKind, paramType, projectionType, locator);
